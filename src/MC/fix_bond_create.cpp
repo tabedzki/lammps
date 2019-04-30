@@ -324,7 +324,7 @@ void FixBondCreate::post_integrate()
   int *ilist,*jlist,*numneigh,**firstneigh;
   tagint *slist;
 
-    if ((update->ntimestep - nevery_delay) % nevery) return
+    if ((update->ntimestep - nevery_delay) % nevery) return;
 
   // check that all procs have needed ghost atoms within ghost cutoff
   // only if neighbor list has changed since last check
