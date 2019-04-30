@@ -32,6 +32,7 @@ class FixBondCreate : public Fix {
   void init();
   void init_list(int, class NeighList *);
   void setup(int);
+  int nevery_delay;
   void post_integrate();
   void post_integrate_respa(int, int);
 
