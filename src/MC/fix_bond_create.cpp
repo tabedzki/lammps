@@ -56,6 +56,7 @@ FixBondCreate::FixBondCreate(LAMMPS *lmp, int narg, char **arg) :
   size_vector = 2;
   global_freq = 1;
   extvector = 0;
+  nevery_delay = 0;
 
   iatomtype = force->inumeric(FLERR,arg[4]);
   jatomtype = force->inumeric(FLERR,arg[5]);
@@ -122,6 +123,10 @@ FixBondCreate::FixBondCreate(LAMMPS *lmp, int narg, char **arg) :
       itype = force->inumeric(FLERR,arg[iarg+1]);
       if (itype < 0) error->all(FLERR,"Illegal fix bond/create command");
       iarg += 2;
+    } else if (strcmp(arg[iarg],"delay") == 0) {
+       if (iarg+1 >= narg) error->all(FLERR,"Illegal fix bond/change command");
+       nevery_delay = force->inumeric(FLERR,arg[iarg+1]);
+       iarg += 2;
     } else error->all(FLERR,"Illegal fix bond/create command");
   }
 
@@ -319,7 +324,7 @@ void FixBondCreate::post_integrate()
   int *ilist,*jlist,*numneigh,**firstneigh;
   tagint *slist;
 
-  if (update->ntimestep % nevery) return;
+    if ((update->ntimestep - nevery_delay) % nevery) return
 
   // check that all procs have needed ghost atoms within ghost cutoff
   // only if neighbor list has changed since last check

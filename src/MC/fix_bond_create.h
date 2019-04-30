@@ -51,6 +51,7 @@ class FixBondCreate : public Fix {
   int iatomtype,jatomtype;
   int btype,seed;
   int imaxbond,jmaxbond;
+  int nevery_delay;
   int inewtype,jnewtype;
   double cutsq,fraction;
   int atype,dtype,itype;
