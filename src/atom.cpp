@@ -39,6 +39,7 @@
 #include "math_const.h"
 #include "memory.h"
 #include "error.h"
+#include "utils.h"
 
 #ifdef LMP_USER_INTEL
 #include "neigh_request.h"
@@ -58,6 +59,7 @@ Atom::Atom(LAMMPS *lmp) : Pointers(lmp)
   natoms = 0;
   nlocal = nghost = nmax = 0;
   ntypes = 0;
+  nellipsoids = nlines = ntris = nbodies = 0;
   nbondtypes = nangletypes = ndihedraltypes = nimpropertypes = 0;
   nbonds = nangles = ndihedrals = nimpropers = 0;
 
@@ -98,7 +100,7 @@ Atom::Atom(LAMMPS *lmp) : Pointers(lmp)
 
   // SPIN package
 
-  sp = fm = NULL;
+  sp = fm = fm_long = NULL;
 
   // USER-DPD
 
@@ -277,6 +279,7 @@ Atom::~Atom()
 
   memory->destroy(sp);
   memory->destroy(fm);
+  memory->destroy(fm_long);
 
   memory->destroy(vfrac);
   memory->destroy(s0);
@@ -508,7 +511,7 @@ AtomVec *Atom::new_avec(const char *style, int trysuffix, int &sflag)
     return avec_creator(lmp);
   }
 
-  error->all(FLERR,"Unknown atom style");
+  error->all(FLERR,utils::check_packages_for_style("atom",style,lmp).c_str());
   return NULL;
 }
 
@@ -736,6 +739,45 @@ int Atom::tag_consecutive()
 
   if (idminall != 1 || idmaxall != natoms) return 0;
   return 1;
+}
+
+/* ----------------------------------------------------------------------
+   check that bonus data settings are valid
+   error if number of atoms with ellipsoid/line/tri/body flags
+   are consistent with global setting.
+------------------------------------------------------------------------- */
+
+void Atom::bonus_check()
+{
+  bigint local_ellipsoids = 0, local_lines = 0, local_tris = 0;
+  bigint local_bodies = 0, num_global;
+
+  for (int i = 0; i < nlocal; ++i) {
+    if (ellipsoid && (ellipsoid[i] >=0)) ++local_ellipsoids;
+    if (line && (line[i] >=0)) ++local_lines;
+    if (tri && (tri[i] >=0)) ++local_tris;
+    if (body && (body[i] >=0)) ++local_bodies;
+  }
+
+  MPI_Allreduce(&local_ellipsoids,&num_global,1,MPI_LMP_BIGINT,MPI_SUM,world);
+  if (nellipsoids != num_global)
+    error->all(FLERR,"Inconsistent 'ellipsoids' header value and number of "
+               "atoms with enabled ellipsoid flags");
+
+  MPI_Allreduce(&local_lines,&num_global,1,MPI_LMP_BIGINT,MPI_SUM,world);
+  if (nlines != num_global)
+    error->all(FLERR,"Inconsistent 'lines' header value and number of "
+               "atoms with enabled line flags");
+
+  MPI_Allreduce(&local_tris,&num_global,1,MPI_LMP_BIGINT,MPI_SUM,world);
+  if (ntris != num_global)
+    error->all(FLERR,"Inconsistent 'tris' header value and number of "
+               "atoms with enabled tri flags");
+
+  MPI_Allreduce(&local_bodies,&num_global,1,MPI_LMP_BIGINT,MPI_SUM,world);
+  if (nbodies != num_global)
+    error->all(FLERR,"Inconsistent 'bodies' header value and number of "
+               "atoms with enabled body flags");
 }
 
 /* ----------------------------------------------------------------------
