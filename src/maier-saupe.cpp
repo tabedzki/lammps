@@ -373,6 +373,7 @@ void MaierSaupe::calc_eig_vec(double**M,double*v)
   int converged;
 
   int Dim = domain->dimension;
+  double director[Dim][Dim];
 
     // allocate data for eigenvalue decomposition
     double **A=NULL;
@@ -419,10 +420,35 @@ void MaierSaupe::calc_eig_vec(double**M,double*v)
       //   check how many are maximum allowed by the user
       double order_parameter = fabs(A[0][0]);
 
+      M[0][0] -= order_parameter;
+      M[1][1] -= order_parameter;
+      M[2][2] -= order_parameter;
 
+      double factor;
 
-    memory->destroy(A);
-    memory->destroy(Q);
+      // Eliminate (1,0)
+      factor = M[1][0] / M[0][0];
+      M[1][1] -= M[0][1] * factor;
+      M[1][2] -= M[0][2] * factor;
+
+      // Eliminate (2,0)
+      factor = M[2][0] / M[0][0];
+      M[2][1] -= M[0][1] * factor;
+      M[2][2] -= M[0][2] * factor;
+
+      // Eliminate (2,1)
+      factor = M[2][1] / M[1][1];
+      M[2][2] -= M[1][2] * factor;
+
+      // Eliminate (1,2)
+      M[1][2] -= M[2][2];
+
+      // Eliminate (1,0)
+      factor = M[1][0] / M[1][1];
+      M[1][2] -= M[1][1] * factor;
+
+      memory->destroy(A);
+      memory->destroy(Q);
 }
 
 /* ----------------------------------------------------------------------
