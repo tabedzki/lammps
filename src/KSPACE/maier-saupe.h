@@ -678,6 +678,14 @@ class TILD : public KSpace{
   double qdist;                // distance from O site to negative charge
   double alpha;                // geometric factor
 
+  void calc_eig_vec(double**, double*);
+  int qr_alg(double**, double**, int);
+  void hessenberg(double**, double**, int);
+  void qr_tri(double**, double**, int);
+  void mmult(double**, double**, double**, int);
+  int check_convergence(double**, double**, double**,
+                        double**, double**, double**, int);
+
   void set_grid_global();
   void set_grid();
 //   void set_grid_local();
