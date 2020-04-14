@@ -1161,6 +1161,7 @@ void TILD::init_cross_potentials(){
   output->thermo->evaluate_keyword("vol",&vole);
   for (vector<tuple<int, int, vector<double>>>::size_type ind1 = 0; ind1 < potent_with_params.size(); ind1++){
     for (vector<tuple<int, int, vector<double>>>::size_type ind2 = ind1; ind2 < potent_with_params.size(); ind2++){
+        int loc = potent_map[ind1][ind2];
       // If both parameters are Gaussian, just do analytical convolution
       if (get<1>(potent_with_params[ind1]) == 1 && 
           get<1>(potent_with_params[ind2]) == 1){
@@ -1174,7 +1175,28 @@ void TILD::init_cross_potentials(){
               a2_sq_alt *= a2_sq_alt;
             double a12_sq = a1_sq + a2_sq;
             double a12_sq_alt = a1_sq_alt + a2_sq_alt;
-        init_potential(potent[potent_map[ind1][ind2]], 1, &a12_sq_alt);
+        init_potential(potent[loc], 1, &a12_sq_alt);
+
+        int j = 0;
+        for (int i = 0; i < nfft; i++) {
+          work2[j++] = tmp[i];
+          work2[j++] = ZEROF;
+        }
+
+        fft1->compute(work2, work2, 1);
+
+        for (int i = 0; i < 2 * nfft; i++) {
+          work2[i] *= scale_inv;
+        }
+
+        // Convolution of potentials
+        j = 0;
+        for (int i = 0; i < nfft; i++) {
+          potent_hat[loc][j]   = work2[j];
+          potent_hat[loc][j+1] = work2[j+1];
+          j += 2;
+        }
+        ktmp = work2;
 
       } 
       else {
@@ -1182,7 +1204,6 @@ void TILD::init_cross_potentials(){
         double *param1, *param2;
         param1 = &potent_param[pot_map[ind1]][1];
         param2 = &potent_param[pot_map[ind2]][1];
-        int loc = potent_map[ind1][ind2];
 
         // 1st Potential to be convolved
         init_potential(tmp, potent_with_params[pot_map[ind1]]);
@@ -1201,7 +1222,7 @@ void TILD::init_cross_potentials(){
         }
 
         // 2nd Potential to be convolved
-        init_potential(tmp, potent_with_params[pot_map[ind1]]);
+        init_potential(tmp, potent_with_params[pot_map[ind2]]);
         // init_potential(tmp,potent_param[pot_map[ind2]][0], param2 );
 
         j = 0;
@@ -1216,6 +1237,7 @@ void TILD::init_cross_potentials(){
           work2[i] *= scale_inv;
         }
 
+        j = 0;
         // Convolution of potentials
         for (int i = 0; i < nfft; i++) {
           complex_multiply(work1, work2, ktmp, j);
@@ -1223,7 +1245,7 @@ void TILD::init_cross_potentials(){
           potent_hat[loc][j+1] = ktmp[j+1];
           j += 2;
         }
-        
+      }
         get_k_alias(ktmp, grad_potent_hat[loc]);
 
         fft1->compute(ktmp, work1, -1);
@@ -1247,7 +1269,7 @@ void TILD::init_cross_potentials(){
           }
         }
 
-      }
+      
     }
   }
 
